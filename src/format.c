@@ -4,13 +4,17 @@
 #include <stdbool.h>
 
 static int64_t multiply_by_10_to_the_nth(int64_t value, int8_t n) {
-  while (n-- > 0) value *= 10;
+  while (n-- > 0) {
+    value *= 10;
+  }
   return value;
 }
 
 static int8_t count_digits(int64_t value) {
   int8_t digits = 1;  // The largest number in C has twenty digits.
-  while ((value /= 10) != 0) digits++;
+  while ((value /= 10) != 0) {
+    digits++;
+  }
   return digits;
 }
 
@@ -34,88 +38,73 @@ static char * int_to_str(int64_t value) {
 }
 
 int8_t set_precision(int8_t precision) {
+  // Set `value` equal to lower or upper bound if value falls out of range.
   return (precision >= 0 ? precision : (precision <= 6 ? precision : 6));
 }
 
-int64_t str_length(char *str) {
+int64_t str_len(char *str) {
   int64_t length = 0;
-  while ((*str++ != '\0')) length++;
+  while ((*str++ != '\0')) {
+    length++;
+  }
   return length;
 }
 
 static char * float_to_str(float value, int8_t precision) {
-  // We'll need to allocate an extra byte for the '-' if the value is
-  // negative so note that here before modifying value in any way.
-  bool is_negative = (value < 0);
-  // If `value` doesn't have a decimal point value (x.123456), we can
-  // skip where we convert that part to a string.
-  bool has_decimal_value = (((float) (value - (int64_t) value)) != 0);
-
-  char *decimal_digits = NULL;
-  int64_t index;
-  char *temp;
-
-  if (has_decimal_value) {
-    // Value has a decimal point value; convert it to a string:
-    precision = set_precision(precision);
-    decimal_digits = (char *) calloc(precision, sizeof(char));
-    index = 0;
-
-    // Take the value beyond the decimal point and multiply by
-    // (10^precision) so it will be in the form of a regular integer.
-    // Then we can perform the helper `int_to_str` function to get the
-    // decimal value as a string.
-    int decimal_as_int = (
+  // Ensure precision is between [0, 6].
+  precision = set_precision(precision);
+  // Convert the left side of the decimal into a string.
+  char *lvalue = int_to_str((int64_t) value);
+  // "rvalue" refers to the right side of the decimal.
+  bool has_rvalue = (((float) (value - (int64_t) value)) != 0);
+  char *rvalue = NULL;
+  if (has_rvalue) {
+    rvalue = int_to_str(
+      // zero out the left value and leave the right value.
       (value - (int64_t) value)
+      // Move the right value to the left side so it is an integer.
       * (multiply_by_10_to_the_nth(10, (precision - 1)))
     );
-    char *decimal_str = int_to_str(decimal_as_int);
-    // We can't properly free `decimal_str` if we modify the pointer
-    // so we'll modify a pointer of a pointer instead.
-    temp = decimal_str;
-
-    // Pad the decimal string with '0's to maintain the proper precision.
-    while (precision-- > str_length(decimal_str)) {
-      decimal_digits[index++] = '0';
-    }
-    // Take the content of `decimal_str` and append it to `decimal_digits`.
-    while (precision--) {
-      decimal_digits[index++] = *temp++;
-    }
-    // We no longer need `decimal_str`; free the allocated memory.
-    free(decimal_str);
   }
 
-  char *real_value = int_to_str((int64_t) value);
-
-  int8_t result_size = (
-    (is_negative ? 1 : 0)  // additional byte for negative sign (if negative).
-    + (has_decimal_value ? (str_length(decimal_digits) + 1) : 0)
-    + str_length(real_value)
+  int8_t result_length = (
+    // if `value` is negative; allocate memory for the sign.
+    ((value < 0) ? 1 : 0)
+    // Allocate memory for the `rvalue`.
+    // If (precision > 0), allocate +1 for the decimal point ('.').
+    + ((precision > 0) ? (precision + 1) : 0)
+    + str_len(lvalue)
   );
 
-  printf("%hhd\n", result_size);
+  char *result = (char *) calloc(result_length, sizeof(char));
+  int64_t index = 0, jndex = 0;  // For incrementing dest and source.
 
-  char *result = (char *) calloc(result_size, sizeof(char));
-  index = 0;
-  int64_t index2 = 0;
-
-  if (is_negative) {
+  // If `value` is negative, append a negative sign.
+  if (value < 0) {
     result[index++] = '-';
   }
 
-  while ((result[index] = real_value[index2++])) {
+  // Append the lvalue.
+  while ((result[index] = lvalue[jndex++])) {
     index++;
   }
 
-  index2 = 0;
-  if (has_decimal_value) {
+  if (has_rvalue) {
     result[index++] = '.';
-    while ((result[index++] = decimal_digits[index2++])) {}
-    free(decimal_digits);
+    // Pads the result's right value with '0's
+    while (precision-- > str_len(rvalue)) {
+      result[index++] = '0';
+    }
+    jndex = 0;
+    // Append the right value to `result`.
+    while ((result[index++] = rvalue[jndex++])) {}
   }
 
-  free(real_value);
+  // Separated left and right values are no longer needed;
+  // free the allocated memory from `int_to_str()`.
+  free(lvalue);
+  free(rvalue);
+
   return result;
 }
 
@@ -128,7 +117,7 @@ int32_t main(int32_t argc, const char **argv) {
   free(string);
   // char *fmt = format(&format, "Hello, %s!", "World");
 
-  string = float_to_str(7.023456, set_precision(6));
+  string = float_to_str(7.023, set_precision(6));
   printf("float: '%s'\n", string);
   return 0;
 }
