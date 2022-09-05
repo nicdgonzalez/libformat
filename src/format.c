@@ -39,7 +39,7 @@ static char * int_to_str(int64_t value) {
 
 int8_t set_precision(int8_t precision) {
   // Set `value` equal to lower or upper bound if value falls out of range.
-  return (precision >= 0 ? precision : (precision <= 6 ? precision : 6));
+  return (precision >= 0 ? (precision <= 6 ? precision : 6) : 0);
 }
 
 int64_t str_len(char *str) {
@@ -117,7 +117,7 @@ int32_t main(int32_t argc, const char **argv) {
   free(string);
   // char *fmt = format(&format, "Hello, %s!", "World");
 
-  string = float_to_str(7.023, set_precision(6));
+  string = float_to_str(7.023, set_precision(20));
   printf("float: '%s'\n", string);
   return 0;
 }
