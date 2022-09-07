@@ -19,10 +19,19 @@ static int8_t count_digits(int64_t value) {
 }
 
 static char * int_to_str(int64_t value) {
+  bool is_negative = false;
+  if (value < 0) {
+    is_negative = true;
+    value *= -1;
+  }
   int64_t copy_of_value = value;
   int8_t digits = count_digits(value);
-  char *result = (char *) calloc(digits + 1, sizeof(char));
+  char *result = (char *) calloc((digits + 1), sizeof(char));
   char *_result = result;
+
+  if (is_negative) {
+    *_result++ = '-';
+  }
 
   while (digits != 0) {
     if ((copy_of_value / 10) != 0) {
@@ -51,6 +60,11 @@ int64_t str_len(char *str) {
 }
 
 static char * float_to_str(float value, int8_t precision) {
+  bool is_negative = false;
+  if (value < 0) {
+    is_negative += true;
+    value *= -1;
+  }
   // Ensure precision is between [0, 6].
   precision = set_precision(precision);
   // Convert the left side of the decimal into a string.
@@ -69,7 +83,7 @@ static char * float_to_str(float value, int8_t precision) {
 
   int8_t result_length = (
     // if `value` is negative; allocate memory for the sign.
-    ((value < 0) ? 1 : 0)
+    ((is_negative) ? 1 : 0)
     // Allocate memory for the `rvalue`.
     // If (precision > 0), allocate +1 for the decimal point ('.').
     + ((precision > 0) ? (precision + 1) : 0)
@@ -80,7 +94,7 @@ static char * float_to_str(float value, int8_t precision) {
   int64_t index = 0, jndex = 0;  // For incrementing dest and source.
 
   // If `value` is negative, append a negative sign.
-  if (value < 0) {
+  if (is_negative) {
     result[index++] = '-';
   }
 
@@ -111,13 +125,13 @@ static char * float_to_str(float value, int8_t precision) {
 // char * format(char **str, const char *fmt, ...) {}
 
 int32_t main(int32_t argc, const char **argv) {
-  const int32_t favorite_number = 7;
+  const int32_t favorite_number = -7;
   char *string = int_to_str(favorite_number);
-  // printf("Result: '%s'\n", string);
+  printf("Result: '%s'\n", string);
   free(string);
   // char *fmt = format(&format, "Hello, %s!", "World");
 
-  string = float_to_str(7.023, set_precision(20));
+  string = float_to_str(-7.023, set_precision(20));
   printf("float: '%s'\n", string);
   return 0;
 }
